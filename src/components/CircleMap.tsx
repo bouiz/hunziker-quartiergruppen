@@ -29,7 +29,6 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
   const simulationRef = useRef<d3.Simulation<Node, undefined> | null>(null);
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
-  const prevNodesRef = useRef<Map<string, Node>>(new Map());
   const nodesRef = useRef<Node[]>([]);
   const isInitialZoom = useRef(true);
 
@@ -38,11 +37,33 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
-    // Initialize nodes, keeping previous positions if they exist
+    if (!simulationRef.current) {
+      simulationRef.current = d3.forceSimulation<Node>([])
+        .on('tick', () => {
+          if (simulationRef.current) {
+            const currentNodes = [...simulationRef.current.nodes()];
+            nodesRef.current = currentNodes;
+            setNodes(currentNodes);
+          }
+        });
+    }
+
+    const simulation = simulationRef.current;
+
+    // Update forces with current dimensions
+    simulation
+      .force('x', d3.forceX(width / 2).strength(0.08))
+      .force('y', d3.forceY(height / 2).strength(0.08))
+      .force('charge', d3.forceManyBody().strength(15))
+      .force('collide', d3.forceCollide<Node>().radius(d => d.radius + 4).iterations(3));
+
+    // Initialize nodes, keeping previous objects if they exist
     const newNodes: Node[] = groups.map(g => {
-      const existing = prevNodesRef.current.get(g.id);
+      const existing = nodesRef.current.find(n => n.id === g.id);
       if (existing) {
-        return { ...existing, group: g }; // Keep position and radius
+        // Update the group data but keep the simulation state (x, y, vx, vy)
+        existing.group = g;
+        return existing;
       }
       return {
         id: g.id,
@@ -55,33 +76,23 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
       };
     });
 
-    // Update prevNodesRef
-    prevNodesRef.current = new Map(newNodes.map(n => [n.id, n]));
+    simulation.nodes(newNodes);
+    simulation.alpha(0.2).restart();
 
-    setNodes(newNodes);
-
-    if (simulationRef.current) {
-      simulationRef.current.stop();
-    }
-
-    const simulation = d3.forceSimulation<Node>(newNodes)
-      .force('charge', d3.forceManyBody().strength(15))
-      .force('center', d3.forceCenter(width / 2, height / 2))
-      .force('collide', d3.forceCollide<Node>().radius(d => d.radius + 4).iterations(3))
-      .alpha(0.3) // Re-heat slightly for smooth transition
-      .restart()
-      .on('tick', () => {
-        const currentNodes = [...simulation.nodes()];
-        nodesRef.current = currentNodes;
-        setNodes(currentNodes);
-      });
-
-    simulationRef.current = simulation;
-
+    // Cleanup on unmount
     return () => {
-      simulation.stop();
+      // Only stop on unmount, not on every groups change
     };
   }, [groups]);
+
+  // Cleanup simulation on unmount
+  useEffect(() => {
+    return () => {
+      if (simulationRef.current) {
+        simulationRef.current.stop();
+      }
+    };
+  }, []);
 
   // Handle Zoom
   useEffect(() => {

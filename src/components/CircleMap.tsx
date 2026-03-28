@@ -30,6 +30,8 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
   const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
 
   const prevNodesRef = useRef<Map<string, Node>>(new Map());
+  const nodesRef = useRef<Node[]>([]);
+  const isInitialZoom = useRef(true);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -69,7 +71,9 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
       .alpha(0.3) // Re-heat slightly for smooth transition
       .restart()
       .on('tick', () => {
-        setNodes([...simulation.nodes()]);
+        const currentNodes = [...simulation.nodes()];
+        nodesRef.current = currentNodes;
+        setNodes(currentNodes);
       });
 
     simulationRef.current = simulation;
@@ -125,8 +129,11 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
+    const duration = isInitialZoom.current ? 0 : 750;
+    isInitialZoom.current = false;
+
     if (selectedGroup) {
-      const node = nodes.find(n => n.id === selectedGroup.id);
+      const node = nodesRef.current.find(n => n.id === selectedGroup.id);
       if (node && node.x && node.y) {
         // Zoom to node (Level 3)
         const scale = 3;
@@ -134,20 +141,20 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
         const x = isMobile ? width / 2 - node.x * scale : width / 3 - node.x * scale;
         const y = isMobile ? height / 4 - node.y * scale : height / 2 - node.y * scale;
         
-        svg.transition().duration(750).call(
+        svg.transition().duration(duration).call(
           zoomRef.current.transform,
           d3.zoomIdentity.translate(x, y).scale(scale)
         );
       }
     } else if (focusedNodeId) {
-      const node = nodes.find(n => n.id === focusedNodeId);
+      const node = nodesRef.current.find(n => n.id === focusedNodeId);
       if (node && node.x && node.y) {
         // Zoom to node (Level 2)
         const scale = 2;
         const x = width / 2 - node.x * scale;
         const y = height / 2 - node.y * scale;
         
-        svg.transition().duration(750).call(
+        svg.transition().duration(duration).call(
           zoomRef.current.transform,
           d3.zoomIdentity.translate(x, y).scale(scale)
         );
@@ -158,12 +165,12 @@ export const CircleMap: React.FC<CircleMapProps> = ({ groups, selectedGroup, onS
       const scale = 0.75;
       const yOffset = isMobile ? 120 : 80;
       
-      svg.transition().duration(750).call(
+      svg.transition().duration(duration).call(
         zoomRef.current.transform,
         d3.zoomIdentity.translate(width / 2, height / 2 + yOffset).scale(scale).translate(-width / 2, -height / 2)
       );
     }
-  }, [selectedGroup, focusedNodeId, nodes, resetTrigger]);
+  }, [selectedGroup, focusedNodeId, resetTrigger]);
 
   return (
     <div ref={containerRef} className="w-full h-full relative overflow-hidden bg-[#f4f4f5]">

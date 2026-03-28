@@ -56,17 +56,27 @@ export default function App() {
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 z-20 p-4 md:p-8 pointer-events-none flex flex-col items-center gap-6">
         
-        <h1 
-          onClick={() => {
-            setSelectedGroup(null);
-            setSearchQuery('');
-            setSelectedCategory(null);
-            setResetTrigger(prev => prev + 1);
-          }}
-          className="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight font-serif cursor-pointer hover:opacity-80 transition-opacity pointer-events-auto"
-        >
-          {language === 'EN' ? 'Hunziker Community Groups' : 'Hunziker Quartiergruppen'}
-        </h1>
+        <div className="w-full flex justify-center relative pointer-events-auto">
+          <h1 
+            onClick={() => {
+              setSelectedGroup(null);
+              setSearchQuery('');
+              setSelectedCategory(null);
+              setResetTrigger(prev => prev + 1);
+            }}
+            className="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight font-serif cursor-pointer hover:opacity-80 transition-opacity text-center px-12 md:px-0"
+          >
+            {language === 'EN' ? 'Hunziker Communities' : 'Hunziker Quartiergruppen'}
+          </h1>
+
+          {/* Language Toggle - Mobile */}
+          <button 
+            onClick={() => setLanguage(l => l === 'EN' ? 'DE' : 'EN')}
+            className="md:hidden absolute right-0 top-1 flex items-center justify-center bg-white/90 backdrop-blur-md w-10 h-10 rounded-xl shadow-sm border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+          >
+            {language}
+          </button>
+        </div>
         
         <div className="flex flex-col md:flex-row items-center gap-4 pointer-events-auto w-full max-w-2xl justify-center">
           
@@ -122,10 +132,10 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          {/* Language Toggle */}
+          {/* Language Toggle - Desktop */}
           <button 
             onClick={() => setLanguage(l => l === 'EN' ? 'DE' : 'EN')}
-            className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-5 py-4 rounded-2xl shadow-lg border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors shrink-0"
+            className="hidden md:flex items-center gap-2 bg-white/90 backdrop-blur-md px-5 py-4 rounded-2xl shadow-lg border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors shrink-0"
           >
             <Globe size={18} />
             {language}
